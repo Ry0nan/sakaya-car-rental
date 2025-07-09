@@ -62,7 +62,7 @@
                         <p class="lead text-light mb-4">
                             Choose from our wide selection of SUVs, Vans, and Sedans for your perfect journey.
                         </p>
-                        <button class="btn btn-primary btn-lg" onclick="document.getElementById('cars').scrollIntoView()">
+                        <button class="btn btn-primary btn-lg" onclick="document.getElementById('cars').scrollIntoView({behavior: 'smooth'})">
                             Browse Cars
                         </button>
                     </div>
@@ -78,8 +78,6 @@
         <section id="cars" class="py-5">
             <div class="container">
                 <h2 class="text-center section-title">Our Fleet</h2>
-                
-                <!-- Category Filter -->
                 <div class="row mb-4">
                     <div class="col-12 text-center">
                         <div class="btn-group" role="group">
@@ -90,8 +88,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Cars Grid -->
                 <div class="row" id="carsGrid">
                     <!-- Cars will be dynamically loaded here -->
                 </div>
@@ -217,7 +213,7 @@
                         </li>
                     </ul>
                     <div class="tab-content mt-3">
-                        <div class="tab-pane active" id="manageCards">
+                        <div class="tab-pane active" id="manageCars">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5>Car Catalogue</h5>
                                 <button class="btn btn-primary" onclick="showAddCarForm()">Add New Car</button>
