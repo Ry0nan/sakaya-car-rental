@@ -12,12 +12,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function initializeData() {
   const sampleCars = [
-    { id: 1, name: "Toyota RAV4", category: "suv", price: 75, image: "https://via.placeholder.com/300x200?text=Toyota+RAV4", description: "Spacious and reliable SUV." },
-    { id: 2, name: "Honda Pilot", category: "suv", price: 85, image: "https://via.placeholder.com/300x200?text=Honda+Pilot", description: "Premium 8-seater SUV." },
-    { id: 3, name: "Ford Transit", category: "van", price: 95, image: "https://via.placeholder.com/300x200?text=Ford+Transit", description: "Spacious van for groups." },
-    { id: 4, name: "Chevrolet Express", category: "van", price: 90, image: "https://via.placeholder.com/300x200?text=Chevrolet+Express", description: "Reliable passenger van." },
-    { id: 5, name: "Toyota Camry", category: "sedan", price: 55, image: "https://via.placeholder.com/300x200?text=Toyota+Camry", description: "Elegant sedan with great fuel efficiency." },
-    { id: 6, name: "Honda Accord", category: "sedan", price: 60, image: "https://via.placeholder.com/300x200?text=Honda+Accord", description: "Luxury sedan with smooth ride." },
+    { id: 1, name: "Toyota RAV4", category: "suv", price: 75, image: "assets/car-rental-cover-page.webp", description: "Spacious and reliable SUV." },
+    { id: 2, name: "Honda Pilot", category: "suv", price: 85, image: ".assets/car-rental-cover-page.webp", description: "Premium 8-seater SUV." },
+    { id: 3, name: "Ford Transit", category: "van", price: 95, image: ".assets/car-rental-cover-page.webp", description: "Spacious van for groups." },
+    { id: 4, name: "Chevrolet Express", category: "van", price: 90, image: ".assets/car-rental-cover-page.webp", description: "Reliable passenger van." },
+    { id: 5, name: "Toyota Camry", category: "sedan", price: 55, image: ".assets/car-rental-cover-page.webp", description: "Elegant sedan with great fuel efficiency." },
+    { id: 6, name: "Honda Accord", category: "sedan", price: 60, image: ".assets/car-rental-cover-page.webp", description: "Luxury sedan with smooth ride." },
   ];
 
   cars = JSON.parse(localStorage.getItem("sakaya_cars")) || sampleCars;
