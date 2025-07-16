@@ -154,7 +154,44 @@ const insertInitialData = async () => {
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
-    await connectToAivenMySQL();
+    const sslConfig = {
+        rejectUnauthorized: false
+    };
+
+    // Only add CA certificate if file exists
+    const caPath = path.join(__dirname, 'ca.pem');
+    if (fs.existsSync(caPath)) {
+        sslConfig.ca = fs.readFileSync(caPath);
+    }
+
+    const dbConfigModified = {
+        host: process.env.DB_HOST,
+        port: parseInt(process.env.DB_PORT),
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        ssl: sslConfig,
+        connectTimeout: 30000,
+        acquireTimeout: 30000,
+        timeout: 30000
+    };
+
+    try {
+        db = await mysql.createConnection(dbConfigModified);
+        console.log("Connected to Aiven for MySQL!");
+
+        const [rows] = await db.execute("SELECT VERSION() as version");
+        console.log("MySQL Version:", rows[0].version);
+        console.log(`JavaWheels server running on port ${process.env.PORT || 5000}`);
+        console.log(`Access the application at http://0.0.0.0:${process.env.PORT || 5000}`);
+
+        // Initialize database tables
+        await initializeDatabase();
+
+    } catch (error) {
+        console.error("Error connecting to Aiven for MySQL:", error);
+        process.exit(1);
+    }
 
     // Note: app should be defined in server.js, not here
     console.log(`Server ready to start on port ${PORT}`);
