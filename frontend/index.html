@@ -398,26 +398,42 @@ let currentUser = null;
 // API Helper Functions
 const api = {
     get: async (endpoint) => {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            headers: {
-                'Authorization': authToken ? `Bearer ${authToken}` : ''
+        try {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                headers: {
+                    'Authorization': authToken ? `Bearer ${authToken}` : ''
+                }
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+                throw errorData;
             }
-        });
-        if (!response.ok) throw await response.json();
-        return response.json();
+            return response.json();
+        } catch (error) {
+            console.error('API GET Error:', error);
+            throw error;
+        }
     },
     
     post: async (endpoint, data) => {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': authToken ? `Bearer ${authToken}` : ''
-            },
-            body: JSON.stringify(data)
-        });
-        if (!response.ok) throw await response.json();
-        return response.json();
+        try {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authToken ? `Bearer ${authToken}` : ''
+                },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+                throw errorData;
+            }
+            return response.json();
+        } catch (error) {
+            console.error('API POST Error:', error);
+            throw error;
+        }
     },
     
     put: async (endpoint, data) => {
@@ -471,6 +487,14 @@ const api = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check if API is accessible
+    try {
+        await fetch(`${API_URL}/cars`);
+    } catch (error) {
+        showErrorMessage('Unable to connect to server. Please check your connection.');
+        return;
+    }
+    
     await checkLoginStatus();
     await loadCars();
     if (currentUser && !currentUser.isAdmin) {
@@ -492,10 +516,17 @@ async function checkLoginStatus() {
 
 // Load cars from API
 async function loadCars() {
+    const grid = document.getElementById('carsGrid');
+    grid.innerHTML = '<div class="col-12 text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    
     try {
         const cars = await api.get('/cars');
-        const grid = document.getElementById('carsGrid');
         grid.innerHTML = '';
+        
+        if (!cars || cars.length === 0) {
+            grid.innerHTML = '<div class="col-12 text-center"><p class="text-muted">No cars available</p></div>';
+            return;
+        }
         
         cars.forEach(car => {
             const col = document.createElement('div');
