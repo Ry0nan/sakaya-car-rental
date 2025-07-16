@@ -16,10 +16,18 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve frontend files
+app.use(express.static(path.join(__dirname, '../frontend')));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cars', carRoutes);
 app.use('/api/rentals', rentalRoutes);
+
+// Catch-all handler for SPA
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
 
 // Connect to database and start server
 connectToAivenMySQL().then(() => {
