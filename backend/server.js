@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
-const { initializeDatabase } = require('./database');
+const { connectToAivenMySQL } = require('./database');
 const authRoutes = require('./routes/auth');
 const carRoutes = require('./routes/cars');
 const rentalRoutes = require('./routes/rentals');
@@ -21,9 +21,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cars', carRoutes);
 app.use('/api/rentals', rentalRoutes);
 
-// Initialize database and start server
-initializeDatabase().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
+// Connect to database and start server
+connectToAivenMySQL().then(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running on http://0.0.0.0:${PORT}`);
     });
-});
+}).catch(console.error);
