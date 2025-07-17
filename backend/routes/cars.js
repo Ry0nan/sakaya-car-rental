@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { db } = require('../database');
+const database = require('../database');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -53,16 +53,20 @@ router.get('/', async (req, res) => {
     }
 
     try {
+        const db = database.db.get();
         const [cars] = await db.execute(query, params);
+        console.log(`Fetched ${cars.length} cars from database`);
         res.json(cars);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch cars' });
+        console.error('Error fetching cars:', error);
+        res.status(500).json({ error: 'Failed to fetch cars', details: error.message });
     }
 });
 
 // Get single car
 router.get('/:id', async (req, res) => {
     try {
+        const db = database.db.get();
         const [cars] = await db.execute("SELECT * FROM cars WHERE id = ?", [req.params.id]);
         if (cars.length === 0) {
             return res.status(404).json({ error: 'Car not found' });
@@ -79,13 +83,15 @@ router.post('/', authenticateToken, isAdmin, upload.single('image'), async (req,
     const image = req.file ? `/uploads/${req.file.filename}` : null;
 
     try {
+        const db = database.db.get();
         const [result] = await db.execute(
             "INSERT INTO cars (name, category, price, description, seats, image, isAvailable) VALUES (?, ?, ?, ?, ?, ?, ?)",
             [name, category, price, description, seats, image, isAvailable || 1]
         );
         res.json({ id: result.insertId, message: 'Car added successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to add car' });
+        console.error('Error adding car:', error);
+        res.status(500).json({ error: 'Failed to add car', details: error.message });
     }
 });
 
@@ -95,6 +101,7 @@ router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (re
     const image = req.file ? `/uploads/${req.file.filename}` : undefined;
 
     try {
+        const db = database.db.get();
         let query = "UPDATE cars SET name = ?, category = ?, price = ?, description = ?, seats = ?, isAvailable = ?";
         let params = [name, category, price, description, seats, isAvailable];
 
@@ -109,17 +116,20 @@ router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (re
         await db.execute(query, params);
         res.json({ message: 'Car updated successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to update car' });
+        console.error('Error updating car:', error);
+        res.status(500).json({ error: 'Failed to update car', details: error.message });
     }
 });
 
 // Delete car (Admin only)
 router.delete('/:id', authenticateToken, isAdmin, async (req, res) => {
     try {
+        const db = database.db.get();
         await db.execute("DELETE FROM cars WHERE id = ?", [req.params.id]);
         res.json({ message: 'Car deleted successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to delete car' });
+        console.error('Error deleting car:', error);
+        res.status(500).json({ error: 'Failed to delete car', details: error.message });
     }
 });
 
@@ -129,6 +139,7 @@ router.get('/:id/availability', async (req, res) => {
     const carId = req.params.id;
 
     try {
+        const db = database.db.get();
         const [rentals] = await db.execute(
             `SELECT * FROM rentals 
              WHERE carId = ? 
@@ -142,7 +153,8 @@ router.get('/:id/availability', async (req, res) => {
         );
         res.json({ available: rentals.length === 0, conflicts: rentals });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to check availability' });
+        console.error('Error checking availability:', error);
+        res.status(500).json({ error: 'Failed to check availability', details: error.message });
     }
 });
 

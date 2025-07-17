@@ -1,5 +1,5 @@
 const express = require('express');
-const { db } = require('../database');
+const database = require('../database');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -7,6 +7,7 @@ const router = express.Router();
 // Get user's cart
 router.get('/cart', authenticateToken, async (req, res) => {
     try {
+        const db = database.db.get();
         const [items] = await db.execute(
             `SELECT c.*, cars.name, cars.price, cars.image, cars.category 
              FROM cart c 
@@ -16,7 +17,8 @@ router.get('/cart', authenticateToken, async (req, res) => {
         );
         res.json(items);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch cart' });
+        console.error('Error fetching cart:', error);
+        res.status(500).json({ error: 'Failed to fetch cart', details: error.message });
     }
 });
 
@@ -26,6 +28,7 @@ router.post('/cart', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     try {
+        const db = database.db.get();
         // Check if car is available for these dates
         const [conflicts] = await db.execute(
             `SELECT * FROM rentals 
@@ -60,31 +63,34 @@ router.post('/cart', authenticateToken, async (req, res) => {
 
         res.json({ id: result.insertId, message: 'Added to cart' });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to add to cart' });
+        console.error('Error adding to cart:', error);
+        res.status(500).json({ error: 'Failed to add to cart', details: error.message });
     }
 });
 
 // Remove from cart
 router.delete('/cart/:id', authenticateToken, async (req, res) => {
     try {
+        const db = database.db.get();
         await db.execute(
             "DELETE FROM cart WHERE id = ? AND userId = ?",
             [req.params.id, req.user.id]
         );
         res.json({ message: 'Removed from cart' });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to remove from cart' });
+        console.error('Error removing from cart:', error);
+        res.status(500).json({ error: 'Failed to remove from cart', details: error.message });
     }
 });
 
 // Checkout
 router.post('/checkout', authenticateToken, async (req, res) => {
     const userId = req.user.id;
-    const connection = await db.getConnection();
-
+    
     try {
+        const db = database.db.get();
         // Get cart items
-        const [cartItems] = await connection.execute(
+        const [cartItems] = await db.execute(
             `SELECT c.*, cars.price 
              FROM cart c 
              JOIN cars ON c.carId = cars.id 
@@ -96,16 +102,13 @@ router.post('/checkout', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Cart is empty' });
         }
 
-        // Begin transaction
-        await connection.beginTransaction();
-
         const rentalIds = [];
 
         for (const item of cartItems) {
             const days = Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / (1000 * 60 * 60 * 24));
             const totalPrice = days * item.price;
 
-            const [result] = await connection.execute(
+            const [result] = await db.execute(
                 `INSERT INTO rentals (userId, carId, startDate, endDate, totalPrice, status) 
                  VALUES (?, ?, ?, ?, ?, 'confirmed')`,
                 [userId, item.carId, item.startDate, item.endDate, totalPrice]
@@ -115,23 +118,20 @@ router.post('/checkout', authenticateToken, async (req, res) => {
         }
 
         // Clear cart
-        await connection.execute("DELETE FROM cart WHERE userId = ?", [userId]);
+        await db.execute("DELETE FROM cart WHERE userId = ?", [userId]);
 
-        // Commit transaction
-        await connection.commit();
         res.json({ message: 'Checkout successful', rentalIds });
 
     } catch (error) {
-        await connection.rollback();
-        res.status(500).json({ error: 'Checkout failed' });
-    } finally {
-        connection.release();
+        console.error('Error during checkout:', error);
+        res.status(500).json({ error: 'Checkout failed', details: error.message });
     }
 });
 
 // Get user's rentals
 router.get('/my-rentals', authenticateToken, async (req, res) => {
     try {
+        const db = database.db.get();
         const [rentals] = await db.execute(
             `SELECT r.*, cars.name, cars.image, cars.category 
              FROM rentals r 
@@ -142,13 +142,15 @@ router.get('/my-rentals', authenticateToken, async (req, res) => {
         );
         res.json(rentals);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch rentals' });
+        console.error('Error fetching user rentals:', error);
+        res.status(500).json({ error: 'Failed to fetch rentals', details: error.message });
     }
 });
 
 // Get all rentals (Admin only)
 router.get('/all', authenticateToken, isAdmin, async (req, res) => {
     try {
+        const db = database.db.get();
         const [rentals] = await db.execute(
             `SELECT r.*, cars.name as carName, users.name as userName, users.email 
              FROM rentals r 
@@ -158,7 +160,8 @@ router.get('/all', authenticateToken, isAdmin, async (req, res) => {
         );
         res.json(rentals);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch rentals' });
+        console.error('Error fetching all rentals:', error);
+        res.status(500).json({ error: 'Failed to fetch rentals', details: error.message });
     }
 });
 
@@ -172,13 +175,15 @@ router.put('/:id/status', authenticateToken, isAdmin, async (req, res) => {
     }
 
     try {
+        const db = database.db.get();
         await db.execute(
             "UPDATE rentals SET status = ? WHERE id = ?",
             [status, req.params.id]
         );
         res.json({ message: 'Status updated successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to update status' });
+        console.error('Error updating rental status:', error);
+        res.status(500).json({ error: 'Failed to update status', details: error.message });
     }
 });
 
@@ -188,6 +193,7 @@ router.post('/:id/cancel', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     try {
+        const db = database.db.get();
         const [rentals] = await db.execute(
             "SELECT * FROM rentals WHERE id = ? AND userId = ?",
             [rentalId, userId]
@@ -209,7 +215,8 @@ router.post('/:id/cancel', authenticateToken, async (req, res) => {
 
         res.json({ message: 'Rental cancelled successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to cancel rental' });
+        console.error('Error cancelling rental:', error);
+        res.status(500).json({ error: 'Failed to cancel rental', details: error.message });
     }
 });
 
