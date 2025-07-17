@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { db } = require('../database');
+const database = require('../database');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
 
 const router = express.Router();
@@ -27,7 +27,7 @@ const upload = multer({
         const allowedTypes = /jpeg|jpg|png|gif|webp/;
         const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
         const mimetype = allowedTypes.test(file.mimetype);
-        
+
         if (mimetype && extname) {
             return cb(null, true);
         } else {
@@ -38,7 +38,7 @@ const upload = multer({
 });
 
 // Get all cars
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     const { category, available } = req.query;
     let query = "SELECT * FROM cars WHERE 1=1";
     const params = [];
@@ -52,119 +52,110 @@ router.get('/', (req, res) => {
         query += " AND isAvailable = 1";
     }
 
-    db.all(query, params, (err, cars) => {
-        if (err) {
-            return res.status(500).json({ error: 'Failed to fetch cars' });
-        }
+    try {
+        const db = database.db.get();
+        const [cars] = await db.execute(query, params);
+        console.log(`Fetched ${cars.length} cars from database`);
         res.json(cars);
-    });
+    } catch (error) {
+        console.error('Error fetching cars:', error);
+        res.status(500).json({ error: 'Failed to fetch cars', details: error.message });
+    }
 });
 
 // Get single car
-router.get('/:id', (req, res) => {
-    db.get("SELECT * FROM cars WHERE id = ?", [req.params.id], (err, car) => {
-        if (!car) {
+router.get('/:id', async (req, res) => {
+    try {
+        const db = database.db.get();
+        const [cars] = await db.execute("SELECT * FROM cars WHERE id = ?", [req.params.id]);
+        if (cars.length === 0) {
             return res.status(404).json({ error: 'Car not found' });
         }
-        res.json(car);
-    });
+        res.json(cars[0]);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch car' });
+    }
 });
 
 // Add new car (Admin only)
-router.post('/', authenticateToken, isAdmin, upload.single('image'), (req, res) => {
-    const { name, category, price, description } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : '/assets/default-car.jpg';
+router.post('/', authenticateToken, isAdmin, upload.single('image'), async (req, res) => {
+    const { name, category, price, description, seats, isAvailable } = req.body;
+    const image = req.file ? `/uploads/${req.file.filename}` : null;
 
-    db.run(
-        "INSERT INTO cars (name, category, price, image, description) VALUES (?, ?, ?, ?, ?)",
-        [name, category, price, image, description],
-        function(err) {
-            if (err) {
-                return res.status(500).json({ error: 'Failed to add car' });
-            }
-            res.json({
-                id: this.lastID,
-                name,
-                category,
-                price,
-                image,
-                description,
-                isAvailable: true
-            });
-        }
-    );
+    try {
+        const db = database.db.get();
+        const [result] = await db.execute(
+            "INSERT INTO cars (name, category, price, description, seats, image, isAvailable) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [name, category, price, description, seats, image, isAvailable || 1]
+        );
+        res.json({ id: result.insertId, message: 'Car added successfully' });
+    } catch (error) {
+        console.error('Error adding car:', error);
+        res.status(500).json({ error: 'Failed to add car', details: error.message });
+    }
 });
 
 // Update car (Admin only)
-router.put('/:id', authenticateToken, isAdmin, upload.single('image'), (req, res) => {
-    const { name, category, price, description, isAvailable } = req.body;
-    const carId = req.params.id;
+router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (req, res) => {
+    const { name, category, price, description, seats, isAvailable } = req.body;
+    const image = req.file ? `/uploads/${req.file.filename}` : undefined;
 
-    db.get("SELECT * FROM cars WHERE id = ?", [carId], (err, car) => {
-        if (!car) {
-            return res.status(404).json({ error: 'Car not found' });
+    try {
+        const db = database.db.get();
+        let query = "UPDATE cars SET name = ?, category = ?, price = ?, description = ?, seats = ?, isAvailable = ?";
+        let params = [name, category, price, description, seats, isAvailable];
+
+        if (image) {
+            query += ", image = ?";
+            params.push(image);
         }
 
-        const image = req.file ? `/uploads/${req.file.filename}` : car.image;
+        query += " WHERE id = ?";
+        params.push(req.params.id);
 
-        db.run(
-            "UPDATE cars SET name = ?, category = ?, price = ?, image = ?, description = ?, isAvailable = ? WHERE id = ?",
-            [name, category, price, image, description, isAvailable === 'true' ? 1 : 0, carId],
-            (err) => {
-                if (err) {
-                    return res.status(500).json({ error: 'Failed to update car' });
-                }
-                res.json({ message: 'Car updated successfully' });
-            }
-        );
-    });
+        await db.execute(query, params);
+        res.json({ message: 'Car updated successfully' });
+    } catch (error) {
+        console.error('Error updating car:', error);
+        res.status(500).json({ error: 'Failed to update car', details: error.message });
+    }
 });
 
 // Delete car (Admin only)
-router.delete('/:id', authenticateToken, isAdmin, (req, res) => {
-    const carId = req.params.id;
-
-    // Check if car has active rentals
-    db.get(
-        "SELECT COUNT(*) as count FROM rentals WHERE carId = ? AND status IN ('pending', 'active')",
-        [carId],
-        (err, result) => {
-            if (result.count > 0) {
-                return res.status(400).json({ error: 'Cannot delete car with active rentals' });
-            }
-
-            db.run("DELETE FROM cars WHERE id = ?", [carId], (err) => {
-                if (err) {
-                    return res.status(500).json({ error: 'Failed to delete car' });
-                }
-                res.json({ message: 'Car deleted successfully' });
-            });
-        }
-    );
+router.delete('/:id', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const db = database.db.get();
+        await db.execute("DELETE FROM cars WHERE id = ?", [req.params.id]);
+        res.json({ message: 'Car deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting car:', error);
+        res.status(500).json({ error: 'Failed to delete car', details: error.message });
+    }
 });
 
 // Check car availability
-router.get('/:id/availability', (req, res) => {
+router.get('/:id/availability', async (req, res) => {
     const { startDate, endDate } = req.query;
     const carId = req.params.id;
 
-    db.all(
-        `SELECT * FROM rentals 
-         WHERE carId = ? 
-         AND status IN ('pending', 'active', 'confirmed')
-         AND (
-             (startDate <= ? AND endDate >= ?) OR
-             (startDate <= ? AND endDate >= ?) OR
-             (startDate >= ? AND endDate <= ?)
-         )`,
-        [carId, startDate, startDate, endDate, endDate, startDate, endDate],
-        (err, rentals) => {
-            if (err) {
-                return res.status(500).json({ error: 'Failed to check availability' });
-            }
-            res.json({ available: rentals.length === 0, conflicts: rentals });
-        }
-    );
+    try {
+        const db = database.db.get();
+        const [rentals] = await db.execute(
+            `SELECT * FROM rentals 
+             WHERE carId = ? 
+             AND status IN ('pending', 'active', 'confirmed')
+             AND (
+                 (startDate <= ? AND endDate >= ?) OR
+                 (startDate <= ? AND endDate >= ?) OR
+                 (startDate >= ? AND endDate <= ?)
+             )`,
+            [carId, startDate, startDate, endDate, endDate, startDate, endDate]
+        );
+        res.json({ available: rentals.length === 0, conflicts: rentals });
+    } catch (error) {
+        console.error('Error checking availability:', error);
+        res.status(500).json({ error: 'Failed to check availability', details: error.message });
+    }
 });
 
 module.exports = router;

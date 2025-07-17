@@ -391,33 +391,61 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
 // API Configuration
-const API_URL = 'http://localhost:5000/api';
+const API_URL = '/api';
 let authToken = localStorage.getItem('sakaya_token');
 let currentUser = null;
 
 // API Helper Functions
 const api = {
     get: async (endpoint) => {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            headers: {
-                'Authorization': authToken ? `Bearer ${authToken}` : ''
+        try {
+            console.log(`Making GET request to: ${API_URL}${endpoint}`);
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                headers: {
+                    'Authorization': authToken ? `Bearer ${authToken}` : ''
+                }
+            });
+            console.log(`Response status: ${response.status}`);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`API Error Response: ${errorText}`);
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch {
+                    errorData = { error: `HTTP ${response.status}: ${errorText || 'Request failed'}` };
+                }
+                throw errorData;
             }
-        });
-        if (!response.ok) throw await response.json();
-        return response.json();
+            const data = await response.json();
+            console.log(`Response data:`, data);
+            return data;
+        } catch (error) {
+            console.error('API GET Error:', error);
+            throw error;
+        }
     },
     
     post: async (endpoint, data) => {
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': authToken ? `Bearer ${authToken}` : ''
-            },
-            body: JSON.stringify(data)
-        });
-        if (!response.ok) throw await response.json();
-        return response.json();
+        try {
+            const response = await fetch(`${API_URL}${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': authToken ? `Bearer ${authToken}` : ''
+                },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+                throw errorData;
+            }
+            return response.json();
+        } catch (error) {
+            console.error('API POST Error:', error);
+            throw error;
+        }
     },
     
     put: async (endpoint, data) => {
@@ -471,6 +499,22 @@ const api = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('Initializing app...');
+    console.log('API_URL:', API_URL);
+    
+    // Check if API is accessible
+    try {
+        console.log('Testing API connection...');
+        const response = await fetch(`${API_URL}/cars`);
+        console.log('API response status:', response.status);
+        const data = await response.json();
+        console.log('API response data:', data);
+    } catch (error) {
+        console.error('API connection error:', error);
+        showErrorMessage('Unable to connect to server. Please check your connection.');
+        return;
+    }
+    
     await checkLoginStatus();
     await loadCars();
     if (currentUser && !currentUser.isAdmin) {
@@ -492,10 +536,17 @@ async function checkLoginStatus() {
 
 // Load cars from API
 async function loadCars() {
+    const grid = document.getElementById('carsGrid');
+    grid.innerHTML = '<div class="col-12 text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+    
     try {
         const cars = await api.get('/cars');
-        const grid = document.getElementById('carsGrid');
         grid.innerHTML = '';
+        
+        if (!cars || cars.length === 0) {
+            grid.innerHTML = '<div class="col-12 text-center"><p class="text-muted">No cars available</p></div>';
+            return;
+        }
         
         cars.forEach(car => {
             const col = document.createElement('div');
@@ -549,8 +600,11 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     
+    console.log('Attempting login with email:', email);
+    
     try {
         const response = await api.post('/auth/login', { email, password });
+        console.log('Login response:', response);
         authToken = response.token;
         currentUser = response.user;
         localStorage.setItem('sakaya_token', authToken);
@@ -564,6 +618,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
         showSuccessMessage(`Welcome back, ${currentUser.name}!`);
     } catch (error) {
+        console.error('Login error:', error);
         showErrorMessage(error.error || 'Login failed');
     }
 });
