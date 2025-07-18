@@ -122,27 +122,80 @@ const insertInitialData = async () => {
             console.log("Admin user created: admin@sakaya.com / admin123");
         }
 
-        // Check if sample cars exist
-        const [carCount] = await db.execute("SELECT COUNT(*) as count FROM cars");
-        if (carCount[0].count === 0) {
+        // Check if cars already exist
+        const [existingCars] = await db.execute("SELECT COUNT(*) as count FROM cars");
+        
+        if (existingCars[0].count === 0) {
+            console.log("No cars found, inserting sample cars...");
+            // Insert sample cars
             const sampleCars = [
-                ["Toyota RAV4", "suv", 75.00, "/assets/toyota-camry.avif", "Spacious and reliable SUV perfect for family trips", 5],
-                ["Honda Pilot", "suv", 85.00, "/assets/hyundai-kona.avif", "Premium 8-seater SUV with advanced safety features", 8],
-                ["Ford Transit", "van", 95.00, "/assets/ford-transit-wagon.avif", "Spacious van ideal for group travel or cargo", 12],
-                ["Chevrolet Express", "van", 90.00, "/assets/chevrolet-express.avif", "Reliable passenger van with comfortable seating", 15],
-                ["Toyota Camry", "sedan", 55.00, "/assets/toyota-camry.avif", "Elegant sedan with excellent fuel efficiency", 5],
-                ["Honda Accord", "sedan", 60.00, "/assets/nissan-versa.avif", "Luxury sedan with smooth ride and modern features", 5],
-                ["Nissan Altima", "sedan", 58.00, "/assets/nissan-versa.avif", "Comfortable sedan with spacious interior", 5],
-                ["Mazda CX-5", "suv", 70.00, "/assets/jeep-wrangler.avif", "Stylish compact SUV with great handling", 5]
+                [
+                    "Toyota RAV4",
+                    "suv",
+                    75,
+                    "/assets/hyundai-kona.avif",
+                    "Spacious and reliable SUV perfect for family trips",
+                    5
+                ],
+                [
+                    "Honda Pilot",
+                    "suv",
+                    85,
+                    "/assets/kia-niro.avif",
+                    "Premium 8-seater SUV with advanced safety features",
+                    8
+                ],
+                [
+                    "Ford Transit",
+                    "van",
+                    95,
+                    "/assets/ford-transit-wagon.avif",
+                    "Spacious van ideal for group travel or cargo",
+                    12
+                ],
+                [
+                    "Chevrolet Express",
+                    "van",
+                    90,
+                    "/assets/chevrolet-express.avif",
+                    "Reliable passenger van with comfortable seating",
+                    15
+                ],
+                [
+                    "Toyota Camry",
+                    "sedan",
+                    55,
+                    "/assets/toyota-camry.avif",
+                    "Elegant sedan with excellent fuel efficiency",
+                    5
+                ],
+                [
+                    "Honda Accord",
+                    "sedan",
+                    60,
+                    "/assets/chevrolet-malibu.avif",
+                    "Luxury sedan with smooth ride and modern features",
+                    5
+                ],
+                [
+                    "Nissan Altima",
+                    "sedan",
+                    58,
+                    "/assets/nissan-versa.avif",
+                    "Comfortable sedan with spacious interior",
+                    5
+                ]
             ];
 
             for (const car of sampleCars) {
                 await db.execute(
-                    "INSERT INTO cars (name, category, price, image, description, seats) VALUES (?, ?, ?, ?, ?, ?)",
-                    car
+                    "INSERT INTO cars (name, category, price, image, description, seats, isAvailable) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    [...car, true]
                 );
             }
             console.log(`Sample cars inserted: ${sampleCars.length} cars added`);
+        } else {
+            console.log(`Found ${existingCars[0].count} existing cars, skipping sample data insertion`);
         }
     } catch (error) {
         console.error("Error inserting initial data:", error);

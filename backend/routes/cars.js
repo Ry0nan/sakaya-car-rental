@@ -80,13 +80,21 @@ router.get('/:id', async (req, res) => {
 // Add new car (Admin only)
 router.post('/', authenticateToken, isAdmin, upload.single('image'), async (req, res) => {
     const { name, category, price, description, seats, isAvailable } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
+    const image = req.file ? `/uploads/${req.file.filename}` : '/assets/default-car.jpg';
 
     try {
         const db = database.db.get();
         const [result] = await db.execute(
             "INSERT INTO cars (name, category, price, description, seats, image, isAvailable) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [name, category, price, description, seats, image, isAvailable || 1]
+            [
+                name || null,
+                category || null,
+                price || null,
+                description || null,
+                seats || null,
+                image,
+                isAvailable !== undefined ? (isAvailable === 'true' || isAvailable === true ? 1 : 0) : 1
+            ]
         );
         res.json({ id: result.insertId, message: 'Car added successfully' });
     } catch (error) {
@@ -103,7 +111,14 @@ router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (re
     try {
         const db = database.db.get();
         let query = "UPDATE cars SET name = ?, category = ?, price = ?, description = ?, seats = ?, isAvailable = ?";
-        let params = [name, category, price, description, seats, isAvailable];
+        let params = [
+            name || null,
+            category || null,
+            price || null,
+            description || null,
+            seats || null,
+            isAvailable !== undefined ? (isAvailable === 'true' || isAvailable === true ? 1 : 0) : null
+        ];
 
         if (image) {
             query += ", image = ?";

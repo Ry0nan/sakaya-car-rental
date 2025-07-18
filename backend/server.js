@@ -27,10 +27,27 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+// Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Serve frontend files
 app.use(express.static(path.join(__dirname, '../frontend')));
+
+// Serve assets for car images
+app.use('/assets', express.static(path.join(__dirname, '../frontend/assets')));
+app.use('/api/assets', express.static(path.join(__dirname, '../frontend/assets')));
+
+// Handle 404 for assets to prevent infinite loops
+app.use('/assets/*', (req, res) => {
+    console.log(`Asset not found: ${req.path}`);
+    res.status(404).send('Asset not found');
+});
+
+app.use('/api/uploads/*', (req, res) => {
+    console.log(`Upload not found: ${req.path}`);
+    res.status(404).send('Upload not found');
+});
 
 // Test endpoint
 app.get('/api/test', (req, res) => {
