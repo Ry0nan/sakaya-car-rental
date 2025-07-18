@@ -539,7 +539,7 @@ async function loadCars() {
     grid.innerHTML = '<div class="col-12 text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
     
     try {
-        const cars = await api.get('/cars');
+        const cars     = await api.get('/cars');
         grid.innerHTML = '';
         
         if (!cars || cars.length === 0) {
@@ -555,7 +555,7 @@ async function loadCars() {
             col.innerHTML = `
                 <div class="card car-card h-100">
                     <img src="${API_URL}${car.image}" class="card-img-top" alt="${car.name}" 
-                         style="height: 200px; object-fit: cover;" onerror="this.src='./assets/default-car.jpg'">
+                         style="height: 200px; object-fit: cover;" onerror="this.onerror=null; this.src='./assets/default-car.jpg'">
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title">${car.name}</h5>
                         <p class="card-text">${car.description || 'No description available'}</p>
@@ -767,7 +767,7 @@ async function showCart() {
                         <div class="row align-items-center">
                             <div class="col-md-3">
                                 <img src="${API_URL}${item.image}" class="img-fluid rounded" alt="${item.name}"
-                                     onerror="this.src='./assets/default-car.jpg'">
+                                     onerror="this.onerror=null; this.src='./assets/default-car.jpg'">
                             </div>
                             <div class="col-md-6">
                                 <h5>${item.name}</h5>
@@ -844,7 +844,7 @@ async function showProfile() {
                             <div class="row">
                                 <div class="col-md-2">
                                     <img src="${API_URL}${rental.image}" class="img-fluid rounded" alt="${rental.name}"
-                                         onerror="this.src='./assets/default-car.jpg'">
+                                         onerror="this.onerror=null; this.src='./assets/default-car.jpg'">
                                 </div>
                                 <div class="col-md-7">
                                     <h6>${rental.name}</h6>
@@ -957,7 +957,7 @@ async function renderAdminCars() {
                         ${cars.map(car => `
                             <tr>
                                 <td><img src="${API_URL}${car.image}" style="width: 50px; height: 50px; object-fit: cover;" 
-                                     onerror="this.src='./assets/default-car.jpg'"></td>
+                                     onerror="this.onerror=null; this.src='./assets/default-car.jpg'"></td>
                                 <td>${car.name}</td>
                                 <td><span class="badge bg-primary">${car.category}</span></td>
                                 <td>${car.price}/day</td>
