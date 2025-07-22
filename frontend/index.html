@@ -274,7 +274,7 @@
                 <div class="modal-body">
                     <div id="cartItems"></div>
                     <div class="text-end mt-3">
-                        <h5>Total: $<span id="cartTotal">0</span></h5>
+                        <h5>Total: ₱<span id="cartTotal">0</span></h5>
                         <button class="btn btn-success" onclick="checkout()" id="checkoutBtn">Checkout</button>
                     </div>
                 </div>
@@ -664,7 +664,7 @@ async function loadCars() {
                         <p class="card-text">${car.description || 'No description available'}</p>
                         <div class="mt-auto">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="h5 text-primary">$${car.price}/day</span>
+                                <span class="h5 text-primary">₱${car.price}/day</span>
                                 ${!car.isAvailable ? '<span class="badge bg-danger">Not Available</span>' : ''}
                             </div>
                             <div class="d-grid gap-2">
@@ -905,7 +905,7 @@ async function showCart() {
                                 <h5>${item.name}</h5>
                                 <p class="mb-1"><i class="fas fa-calendar"></i> From: ${new Date(item.startDate).toLocaleDateString()}</p>
                                 <p class="mb-1"><i class="fas fa-calendar-check"></i> To: ${new Date(item.endDate).toLocaleDateString()}</p>
-                                <p class="mb-0">${days} days × ${item.price}/day = <strong>${itemTotal}</strong></p>
+                                <p class="mb-0">${days} days × ₱${item.price}/day = <strong>₱${itemTotal}</strong></p>
                             </div>
                             <div class="col-md-3 text-end">
                                 <button class="btn btn-danger btn-sm" onclick="removeFromCart(${item.id})">
@@ -1000,7 +1000,7 @@ async function showProfile() {
                                     <h6>${rental.name}</h6>
                                     <p class="mb-1"><i class="fas fa-calendar"></i> From: ${new Date(rental.startDate).toLocaleDateString()} 
                                        To: ${new Date(rental.endDate).toLocaleDateString()}</p>
-                                    <p class="mb-0">Total: ${rental.totalPrice} (${days} days)</p>
+                                    <p class="mb-0">Total: ₱${rental.totalPrice} (${days} days)</p>
                                 </div>
                                 <div class="col-md-3 text-end">
                                     <span class="badge bg-${getStatusColor(rental.status)}">${rental.status.toUpperCase()}</span>
@@ -1241,7 +1241,7 @@ async function renderAdminCars() {
                                      onerror="this.onerror=null; this.src='./assets/default-car.jpg'"></td>
                                 <td>${car.name}</td>
                                 <td><span class="badge bg-primary">${car.category}</span></td>
-                                <td>${car.price}/day</td>
+                                <td>₱${car.price}/day</td>
                                 <td>
                                     <span class="badge bg-${car.isAvailable ? 'success' : 'danger'}">
                                         ${car.isAvailable ? 'Available' : 'Not Available'}
@@ -1295,7 +1295,7 @@ async function renderUserRentals() {
                                 <td>${rental.userName}<br><small class="text-muted">${rental.email}</small></td>
                                 <td>${rental.carName}</td>
                                 <td>${new Date(rental.startDate).toLocaleDateString()} - ${new Date(rental.endDate).toLocaleDateString()}</td>
-                                <td>${rental.totalPrice}</td>
+                                <td>₱${rental.totalPrice}</td>
                                 <td>
                                     <span class="badge bg-${getStatusColor(rental.status)}">${rental.status.toUpperCase()}</span>
                                 </td>

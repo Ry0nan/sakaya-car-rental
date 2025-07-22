@@ -216,7 +216,7 @@ function displayCars(cars) {
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title">${car.name}</h5>
                     <p class="card-text"><strong>Category:</strong> ${car.category}</p>
-                    <p class="card-text"><strong>Price:</strong> $${car.price}/day</p>
+                    <p class="card-text"><strong>Price:</strong> ₱${car.price}/day</p>
                     <p class="card-text"><strong>Seats:</strong> ${car.seats}</p>
                     <p class="card-text flex-grow-1">${car.description || 'No description available'}</p>
                     <div class="mt-auto">
