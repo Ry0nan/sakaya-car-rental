@@ -1,0 +1,77 @@
+.feedback-item {
+    border: 1px solid #495057;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+/* Enhanced feedback management styles */
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.rating-display {
+    color: #ffc107;
+    font-size: 1.1em;
+}
+
+.feedback-stats-card {
+    transition: transform 0.2s;
+}
+
+.feedback-stats-card:hover {
+    transform: translateY(-2px);
+}
+
+#viewFeedbackModal .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+#viewFeedbackModal .card {
+    border: 1px solid #495057;
+    transition: box-shadow 0.2s;
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+#viewFeedbackModal .card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+#viewFeedbackModal .card.bg-light {
+    background-color: var(--bs-secondary) !important;
+    color: var(--bs-light) !important;
+}
+
+.feedback-comment-content {
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
+.feedback-comment-content br {
+    margin: 0.5em 0;
+}
+
+.btn-info {
+    color: #fff;
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+}
+
+.btn-info:hover {
+    color: #fff;
+    background-color: #138496;
+    border-color: #117a8b;
+}

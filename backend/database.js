@@ -94,6 +94,19 @@ const initializeDatabase = async () => {
             FOREIGN KEY (carId) REFERENCES cars (id) ON DELETE CASCADE
         )`);
 
+        // Feedback table
+        await db.execute(`CREATE TABLE IF NOT EXISTS feedback (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            userId INT NOT NULL,
+            carId INT NOT NULL,
+            rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+            comment TEXT,
+            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
+            FOREIGN KEY (carId) REFERENCES cars (id) ON DELETE CASCADE,
+            UNIQUE KEY unique_user_car_feedback (userId, carId)
+        )`);
+
         console.log("Database tables created successfully");
 
         // Insert admin user and sample data

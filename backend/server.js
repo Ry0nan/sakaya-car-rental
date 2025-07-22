@@ -8,6 +8,7 @@ const { connectToAivenMySQL } = require('./database');
 const authRoutes = require('./routes/auth');
 const carRoutes = require('./routes/cars');
 const rentalRoutes = require('./routes/rentals');
+const feedbackRoutes = require('./routes/feedback');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -58,6 +59,7 @@ app.get('/api/test', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cars', carRoutes);
 app.use('/api/rentals', rentalRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Catch-all handler for SPA
 app.get('*', (req, res) => {

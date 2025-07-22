@@ -212,7 +212,7 @@ function displayCars(cars) {
         carCard.className = 'col-md-6 col-lg-4 mb-4';
         carCard.innerHTML = `
             <div class="card h-100">
-                <img src="${car.image || '/assets/car-example.avif'}" class="card-img-top" alt="${car.name}" style="height: 200px; object-fit: cover;">
+                <img src="${car.image.startsWith('/uploads/') ? '/api' + car.image : car.image || '/assets/car-example.avif'}" class="card-img-top" alt="${car.name}" style="height: 200px; object-fit: cover;">
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title">${car.name}</h5>
                     <p class="card-text"><strong>Category:</strong> ${car.category}</p>

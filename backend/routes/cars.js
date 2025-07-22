@@ -140,7 +140,16 @@ router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (re
 router.delete('/:id', authenticateToken, isAdmin, async (req, res) => {
     try {
         const db = database.db.get();
+        
+        // First delete all cart entries for this car
+        await db.execute("DELETE FROM cart WHERE carId = ?", [req.params.id]);
+        
+        // Then delete all rental entries for this car
+        await db.execute("DELETE FROM rentals WHERE carId = ?", [req.params.id]);
+        
+        // Finally delete the car itself
         await db.execute("DELETE FROM cars WHERE id = ?", [req.params.id]);
+        
         res.json({ message: 'Car deleted successfully' });
     } catch (error) {
         console.error('Error deleting car:', error);

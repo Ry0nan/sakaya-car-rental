@@ -58,6 +58,31 @@
         .cart-item:hover, .rental-item:hover {
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
+        .rating-stars {
+            font-size: 2rem;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .star {
+            color: #ddd;
+            transition: color 0.2s;
+        }
+        .star:hover,
+        .star.active {
+            color: #ffd700;
+        }
+        .feedback-item {
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: var(--bs-dark);
+            border-radius: 0 8px 8px 0;
+            color: var(--bs-light);
+        }
+        .rating-display {
+            color: #ffd700;
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
@@ -317,6 +342,9 @@
                         <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="tab" href="#userRentals">User Rentals</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#manageFeedback">Feedback</a>
+                        </li>
                     </ul>
                     <div class="tab-content mt-3">
                         <div class="tab-pane active" id="manageCars">
@@ -330,7 +358,78 @@
                             <h5>User Rentals</h5>
                             <div id="userRentalsGrid"></div>
                         </div>
+                        <div class="tab-pane" id="manageFeedback">
+                            <h5>Customer Feedback</h5>
+                            <div id="feedbackGrid"></div>
+                        </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div class="modal fade" id="feedbackModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Car Feedback</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="feedbackContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- View Feedback Modal -->
+    <div class="modal fade" id="viewFeedbackModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Full Feedback Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="fullFeedbackContent">
+                    <!-- Content from viewFullFeedback() will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-danger" id="deleteFromModalBtn">Delete Feedback</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Feedback Modal -->
+    <div class="modal fade" id="addFeedbackModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Leave Feedback</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="feedbackForm">
+                        <input type="hidden" id="feedbackCarId">
+                        <div class="mb-3">
+                            <label class="form-label">Rating</label>
+                            <div class="rating-stars">
+                                <span class="star" data-rating="1">☆</span>
+                                <span class="star" data-rating="2">☆</span>
+                                <span class="star" data-rating="3">☆</span>
+                                <span class="star" data-rating="4">☆</span>
+                                <span class="star" data-rating="5">☆</span>
+                            </div>
+                            <input type="hidden" id="feedbackRating" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Comment (Optional)</label>
+                            <textarea class="form-control" id="feedbackComment" rows="3" placeholder="Share your experience with this car..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Submit Feedback</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -405,7 +504,7 @@ const api = {
                 }
             });
             console.log(`Response status: ${response.status}`);
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`API Error Response: ${errorText}`);
@@ -425,7 +524,7 @@ const api = {
             throw error;
         }
     },
-    
+
     post: async (endpoint, data) => {
         try {
             const response = await fetch(`${API_URL}${endpoint}`, {
@@ -446,7 +545,7 @@ const api = {
             throw error;
         }
     },
-    
+
     put: async (endpoint, data) => {
         const response = await fetch(`${API_URL}${endpoint}`, {
             method: 'PUT',
@@ -459,7 +558,7 @@ const api = {
         if (!response.ok) throw await response.json();
         return response.json();
     },
-    
+
     delete: async (endpoint) => {
         const response = await fetch(`${API_URL}${endpoint}`, {
             method: 'DELETE',
@@ -470,7 +569,7 @@ const api = {
         if (!response.ok) throw await response.json();
         return response.json();
     },
-    
+
     postFormData: async (endpoint, formData) => {
         const response = await fetch(`${API_URL}${endpoint}`, {
             method: 'POST',
@@ -482,7 +581,7 @@ const api = {
         if (!response.ok) throw await response.json();
         return response.json();
     },
-    
+
     putFormData: async (endpoint, formData) => {
         const response = await fetch(`${API_URL}${endpoint}`, {
             method: 'PUT',
@@ -500,7 +599,7 @@ const api = {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Initializing app...');
     console.log('API_URL:', API_URL);
-    
+
     // Check if API is accessible
     try {
         console.log('Testing API connection...');
@@ -513,7 +612,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         showErrorMessage('Unable to connect to server. Please check your connection.');
         return;
     }
-    
+
     await checkLoginStatus();
     await loadCars();
     if (currentUser && !currentUser.isAdmin) {
@@ -537,44 +636,63 @@ async function checkLoginStatus() {
 async function loadCars() {
     const grid = document.getElementById('carsGrid');
     grid.innerHTML = '<div class="col-12 text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-    
+
     try {
         const cars     = await api.get('/cars');
         grid.innerHTML = '';
-        
+
         if (!cars || cars.length === 0) {
             grid.innerHTML = '<div class="col-12 text-center"><p class="text-muted">No cars available</p></div>';
             return;
         }
-        
+
         cars.forEach(car => {
             const col = document.createElement('div');
             col.className = 'col-md-6 col-lg-4 mb-4';
             col.dataset.category = car.category;
-            
+
             col.innerHTML = `
                 <div class="card car-card h-100">
                     <img src="${API_URL}${car.image}" class="card-img-top" alt="${car.name}" 
                          style="height: 200px; object-fit: cover;" onerror="this.onerror=null; this.src='./assets/default-car.jpg'">
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title">${car.name}</h5>
+                        <div class="rating-info mb-2" id="rating-${car.id}">
+                            <span class="rating-display">☆☆☆☆☆</span>
+                            <small class="text-muted">(Loading...)</small>
+                        </div>
                         <p class="card-text">${car.description || 'No description available'}</p>
                         <div class="mt-auto">
-                            <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="h5 text-primary">$${car.price}/day</span>
                                 ${!car.isAvailable ? '<span class="badge bg-danger">Not Available</span>' : ''}
+                            </div>
+                            <div class="d-grid gap-2">
                                 <button class="btn btn-primary" onclick="showRentModal(${car.id})" 
                                     ${!currentUser || currentUser.isAdmin || !car.isAvailable ? 'disabled' : ''}>
                                     ${!currentUser ? 'Login to Rent' : currentUser.isAdmin ? 'Admin Mode' : !car.isAvailable ? 'Not Available' : 'Rent Now'}
                                 </button>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-outline-info btn-sm" onclick="showCarFeedback(${car.id})">
+                                        <i class="fas fa-comments"></i> Reviews
+                                    </button>
+                                    ${currentUser && !currentUser.isAdmin ? `
+                                        <button class="btn btn-outline-warning btn-sm" onclick="showAddFeedback(${car.id})">
+                                            <i class="fas fa-star"></i> Rate
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-            
+
             grid.appendChild(col);
         });
+
+        // Load ratings for all cars
+        loadCarRatings(cars);
     } catch (error) {
         showErrorMessage('Failed to load cars');
     }
@@ -584,10 +702,10 @@ async function loadCars() {
 function filterCars(category) {
     const cards = document.querySelectorAll('[data-category]');
     const buttons = document.querySelectorAll('.btn-group .btn');
-    
+
     buttons.forEach(btn => btn.classList.remove('active'));
     event.target.classList.add('active');
-    
+
     cards.forEach(card => {
         card.style.display = (category === 'all' || card.dataset.category === category) ? 'block' : 'none';
     });
@@ -598,26 +716,32 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
-    
+
     console.log('Attempting login with email:', email);
-    
+
     try {
         const response = await api.post('/auth/login', { email, password });
         console.log('Login response:', response);
         authToken = response.token;
         currentUser = response.user;
         localStorage.setItem('sakaya_token', authToken);
-        
+
         updateNavigation();
         await loadCars();
         if (!currentUser.isAdmin) {
             updateCartBadge();
         }
-        
+
+        // Clear form fields on successful login
+        document.getElementById('loginForm').reset();
+
         bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
         showSuccessMessage(`Welcome back, ${currentUser.name}!`);
     } catch (error) {
         console.error('Login error:', error);
+        // Clear form fields on failed login
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginPassword').value = '';
         showErrorMessage(error.error || 'Login failed');
     }
 });
@@ -628,25 +752,33 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
     const confirmPassword = document.getElementById('signupConfirmPassword').value;
-    
+
     if (password !== confirmPassword) {
+        // Clear password fields when they don't match
+        document.getElementById('signupPassword').value = '';
+        document.getElementById('signupConfirmPassword').value = '';
         showErrorMessage('Passwords do not match');
         return;
     }
-    
+
     try {
         const response = await api.post('/auth/register', { name, email, password });
         authToken = response.token;
         currentUser = response.user;
         localStorage.setItem('sakaya_token', authToken);
-        
+
         updateNavigation();
         await loadCars();
         updateCartBadge();
-        
+
+        // Clear form fields on successful registration
+        document.getElementById('signupForm').reset();
+
         bootstrap.Modal.getInstance(document.getElementById('signupModal')).hide();
         showSuccessMessage(`Welcome to SaKaya, ${currentUser.name}!`);
     } catch (error) {
+        // Clear form fields on failed registration
+        document.getElementById('signupForm').reset();
         showErrorMessage(error.error || 'Registration failed');
     }
 });
@@ -672,33 +804,33 @@ function updateNavigation() {
 // Rental Modal
 function showRentModal(carId) {
     if (!currentUser || currentUser.isAdmin) return;
-    
+
     const modal = new bootstrap.Modal(document.getElementById('rentModal'));
     document.getElementById('rentCarId').value = carId;
-    
+
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('rentStartDate').min = today;
     document.getElementById('rentStartDate').value = today;
-    
+
     // Set end date to tomorrow by default
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     document.getElementById('rentEndDate').min = tomorrow.toISOString().split('T')[0];
     document.getElementById('rentEndDate').value = tomorrow.toISOString().split('T')[0];
-    
+
     // Update end date min when start date changes
     document.getElementById('rentStartDate').addEventListener('change', function() {
         const startDate = new Date(this.value);
         const minEndDate = new Date(startDate);
         minEndDate.setDate(minEndDate.getDate() + 1);
         document.getElementById('rentEndDate').min = minEndDate.toISOString().split('T')[0];
-        
+
         if (new Date(document.getElementById('rentEndDate').value) <= startDate) {
-            document.getElementById('rentEndDate').value = minEndDate.toISOString().split('T')[0];
+            document.getElementById('rentEndDate').value = minendDate.toISOString().split('T')[0];
         }
     });
-    
+
     modal.show();
 }
 
@@ -707,17 +839,17 @@ async function addToCart() {
     const carId = document.getElementById('rentCarId').value;
     const startDate = document.getElementById('rentStartDate').value;
     const endDate = document.getElementById('rentEndDate').value;
-    
+
     if (!startDate || !endDate) {
         showErrorMessage('Please select dates');
         return;
     }
-    
+
     if (new Date(endDate) <= new Date(startDate)) {
         showErrorMessage('End date must be after start date');
         return;
     }
-    
+
     try {
         await api.post('/rentals/cart', { carId: parseInt(carId), startDate, endDate });
         showSuccessMessage('Added to cart!');
@@ -731,7 +863,7 @@ async function addToCart() {
 // Update cart badge
 async function updateCartBadge() {
     if (!currentUser || currentUser.isAdmin) return;
-    
+
     try {
         const cartItems = await api.get('/rentals/cart');
         document.getElementById('cartCount').textContent = cartItems.length;
@@ -743,13 +875,13 @@ async function updateCartBadge() {
 // Show cart
 async function showCart() {
     if (!currentUser || currentUser.isAdmin) return;
-    
+
     try {
         const cartItems = await api.get('/rentals/cart');
         const cartItemsDiv = document.getElementById('cartItems');
         const cartTotalSpan = document.getElementById('cartTotal');
         const checkoutBtn = document.getElementById('checkoutBtn');
-        
+
         if (cartItems.length === 0) {
             cartItemsDiv.innerHTML = '<p class="text-center py-4">Your cart is empty.</p>';
             cartTotalSpan.textContent = '0';
@@ -761,7 +893,7 @@ async function showCart() {
                 const days = Math.ceil((new Date(item.endDate) - new Date(item.startDate)) / (1000 * 60 * 60 * 24));
                 const itemTotal = days * item.price;
                 total += itemTotal;
-                
+
                 return `
                     <div class="cart-item mb-3 p-3 border rounded">
                         <div class="row align-items-center">
@@ -786,7 +918,7 @@ async function showCart() {
             }).join('');
             cartTotalSpan.textContent = total;
         }
-        
+
         new bootstrap.Modal(document.getElementById('cartModal')).show();
     } catch (error) {
         showErrorMessage('Failed to load cart');
@@ -822,11 +954,12 @@ async function checkout() {
 // Profile
 async function showProfile() {
     if (!currentUser) return;
-    
+
     try {
         const rentals = await api.get('/rentals/my-rentals');
+        const userFeedback = await api.get('/feedback/my-feedback');
         const profileContent = document.getElementById('profileContent');
-        
+
         profileContent.innerHTML = `
             <div class="mb-4">
                 <h5>User Information</h5>
@@ -834,6 +967,23 @@ async function showProfile() {
                 <p><strong>Email:</strong> ${currentUser.email}</p>
                 <button class="btn btn-primary btn-sm" onclick="showUpdateProfile()">Update Profile</button>
             </div>
+            <hr>
+            <h5>My Feedback</h5>
+            ${userFeedback.length === 0 ? '<p class="text-center py-4">No feedback submitted yet</p>' : 
+                userFeedback.map(feedback => `
+                    <div class="feedback-item mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <img src="${API_URL}${feedback.carImage}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;"
+                                 onerror="this.onerror=null; this.src='./assets/default-car.jpg'">
+                            <div>
+                                <h6 class="mb-0">${feedback.carName}</h6>
+                                <span class="rating-display">${'★'.repeat(feedback.rating)}${'☆'.repeat(5 - feedback.rating)}</span>
+                                <small class="text-muted ms-2">${new Date(feedback.createdAt).toLocaleDateString()}</small>
+                            </div>
+                        </div>
+                        ${feedback.comment ? `<div class="feedback-comment-content">${feedback.comment.replace(/\n/g, '<br>').replace(/\n\n/g, '<br><br>')}</div>` : '<p class="mb-0 text-muted"><em>No comment provided</em></p>'}
+                    </div>
+                `).join('')}
             <hr>
             <h5>Rental History</h5>
             ${rentals.length === 0 ? '<p class="text-center py-4">No rental history</p>' : 
@@ -862,7 +1012,7 @@ async function showProfile() {
                     `;
                 }).join('')}
         `;
-        
+
         new bootstrap.Modal(document.getElementById('profileModal')).show();
     } catch (error) {
         showErrorMessage('Failed to load profile');
@@ -881,18 +1031,18 @@ function showUpdateProfile() {
 // Update profile
 document.getElementById('updateProfileForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const name = document.getElementById('updateName').value;
     const currentPassword = document.getElementById('currentPassword').value;
     const newPassword = document.getElementById('newPassword').value;
-    
+
     const updateData = { name };
-    
+
     if (currentPassword && newPassword) {
         updateData.currentPassword = currentPassword;
         updateData.newPassword = newPassword;
     }
-    
+
     try {
         await api.put('/auth/profile', updateData);
         currentUser.name = name;
@@ -928,10 +1078,141 @@ async function cancelRental(rentalId) {
     }
 }
 
+// Load car ratings
+async function loadCarRatings(cars) {
+    for (const car of cars) {
+        try {
+            const rating = await api.get(`/feedback/car/${car.id}/rating`);
+            const ratingElement = document.getElementById(`rating-${car.id}`);
+            if (ratingElement) {
+                const stars = '★'.repeat(Math.floor(rating.averageRating)) + '☆'.repeat(5 - Math.floor(rating.averageRating));
+                ratingElement.innerHTML = `
+                    <span class="rating-display">${stars}</span>
+                    <small class="text-muted">(${rating.totalReviews} review${rating.totalReviews !== 1 ? 's' : ''})</small>
+                `;
+            }
+        } catch (error) {
+            const ratingElement = document.getElementById(`rating-${car.id}`);
+            if (ratingElement) {
+                ratingElement.innerHTML = `
+                    <span class="rating-display">☆☆☆☆☆</span>
+                    <small class="text-muted">(No reviews)</small>
+                `;
+            }
+        }
+    }
+}
+
+// Show car feedback
+async function showCarFeedback(carId) {
+    try {
+        const feedback = await api.get(`/feedback/car/${carId}`);
+        const rating = await api.get(`/feedback/car/${carId}/rating`);
+        const car = await api.get(`/cars/${carId}`);
+
+        const feedbackContent = document.getElementById('feedbackContent');
+        const stars = '★'.repeat(Math.floor(rating.averageRating)) + '☆'.repeat(5 - Math.floor(rating.averageRating));
+
+        feedbackContent.innerHTML = `
+            <div class="text-center mb-4">
+                <h4>${car.name}</h4>
+                <div class="rating-display" style="font-size: 2rem;">${stars}</div>
+                <p class="mb-0">${rating.averageRating}/5 (${rating.totalReviews} review${rating.totalReviews !== 1 ? 's' : ''})</p>
+            </div>
+
+            ${feedback.length === 0 ? 
+                '<p class="text-center text-muted">No reviews yet. Be the first to leave feedback!</p>' :
+                feedback.map(item => `
+                    <div class="feedback-item">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <strong>${item.userName}</strong>
+                            <div>
+                                <span class="rating-display">${'★'.repeat(item.rating)}${'☆'.repeat(5 - item.rating)}</span>
+                                <small class="text-muted ms-2">${new Date(item.createdAt).toLocaleDateString()}</small>
+                            </div>
+                        </div>
+                        ${item.comment ? `<div class="feedback-comment-content">${item.comment.replace(/\n/g, '<br>').replace(/\n\n/g, '<br><br>')}</div>` : '<p class="mb-0 text-muted"><em>No comment provided</em></p>'}
+                    </div>
+                `).join('')
+            }
+        `;
+
+        new bootstrap.Modal(document.getElementById('feedbackModal')).show();
+    } catch (error) {
+        showErrorMessage('Failed to load feedback');
+    }
+}
+
+// Show add feedback modal
+function showAddFeedback(carId) {
+    if (!currentUser || currentUser.isAdmin) return;
+
+    document.getElementById('feedbackCarId').value = carId;
+    document.getElementById('feedbackRating').value = '';
+    document.getElementById('feedbackComment').value = '';
+
+    // Reset stars
+    document.querySelectorAll('.star').forEach(star => {
+        star.classList.remove('active');
+        star.textContent = '☆';
+    });
+
+    new bootstrap.Modal(document.getElementById('addFeedbackModal')).show();
+}
+
+// Handle star rating clicks
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('star')) {
+        const rating = parseInt(e.target.dataset.rating);
+        document.getElementById('feedbackRating').value = rating;
+
+        // Update star display
+        document.querySelectorAll('.star').forEach((star, index) => {
+            if (index < rating) {
+                star.classList.add('active');
+                star.textContent = '★';
+            } else {
+                star.classList.remove('active');
+                star.textContent = '☆';
+            }
+        });
+    }
+});
+
+// Handle feedback form submission
+document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const carId = document.getElementById('feedbackCarId').value;
+    const rating = document.getElementById('feedbackRating').value;
+    const comment = document.getElementById('feedbackComment').value;
+
+    if (!rating) {
+        showErrorMessage('Please select a rating');
+        return;
+    }
+
+    try {
+        await api.post('/feedback', { 
+            carId: parseInt(carId), 
+            rating: parseInt(rating), 
+            comment: comment || null 
+        });
+        showSuccessMessage('Feedback submitted successfully!');
+        bootstrap.Modal.getInstance(document.getElementById('addFeedbackModal')).hide();
+
+        // Reload cars to update ratings
+        loadCars();
+    } catch (error) {
+        showErrorMessage(error.error || 'Failed to submit feedback');
+    }
+});
+
 // Admin Functions
 async function showAdmin() {
     await renderAdminCars();
     await renderUserRentals();
+    await renderFeedbackManagement();
     new bootstrap.Modal(document.getElementById('adminModal')).show();
 }
 
@@ -939,7 +1220,7 @@ async function renderAdminCars() {
     try {
         const cars = await api.get('/cars');
         const grid = document.getElementById('adminCarsGrid');
-        
+
         grid.innerHTML = `
             <div class="table-responsive">
                 <table class="table table-hover">
@@ -989,12 +1270,12 @@ async function renderUserRentals() {
     try {
         const rentals = await api.get('/rentals/all');
         const grid = document.getElementById('userRentalsGrid');
-        
+
         if (rentals.length === 0) {
             grid.innerHTML = '<p class="text-center py-4">No rentals found</p>';
             return;
         }
-        
+
         grid.innerHTML = `
             <div class="table-responsive">
                 <table class="table table-hover">
@@ -1041,7 +1322,7 @@ async function renderUserRentals() {
 // Update rental status
 async function updateRentalStatus(rentalId, status) {
     if (!status) return;
-    
+
     try {
         await api.put(`/rentals/${rentalId}/status`, { status });
         showSuccessMessage('Status updated successfully');
@@ -1064,7 +1345,7 @@ function showAddCarForm() {
 async function editCar(carId) {
     try {
         const car = await api.get(`/cars/${carId}`);
-        
+
         document.getElementById('carModalTitle').textContent = 'Edit Car';
         document.getElementById('editCarId').value = car.id;
         document.getElementById('carName').value = car.name;
@@ -1073,7 +1354,7 @@ async function editCar(carId) {
         document.getElementById('carDescription').value = car.description || '';
         document.getElementById('carAvailability').value = car.isAvailable ? 'true' : 'false';
         document.getElementById('availabilityGroup').style.display = 'block';
-        
+
         new bootstrap.Modal(document.getElementById('addCarModal')).show();
     } catch (error) {
         showErrorMessage('Failed to load car details');
@@ -1083,24 +1364,24 @@ async function editCar(carId) {
 // Add/Edit car form submission
 document.getElementById('addCarForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const editCarId = document.getElementById('editCarId').value;
     const formData = new FormData();
-    
+
     formData.append('name', document.getElementById('carName').value);
     formData.append('category', document.getElementById('carCategory').value);
     formData.append('price', document.getElementById('carPrice').value);
     formData.append('description', document.getElementById('carDescription').value);
-    
+
     const imageFile = document.getElementById('carImageFile').files[0];
     if (imageFile) {
         formData.append('image', imageFile);
     }
-    
+
     if (editCarId) {
         formData.append('isAvailable', document.getElementById('carAvailability').value);
     }
-    
+
     try {
         if (editCarId) {
             await api.putFormData(`/cars/${editCarId}`, formData);
@@ -1109,7 +1390,7 @@ document.getElementById('addCarForm').addEventListener('submit', async (e) => {
             await api.postFormData('/cars', formData);
             showSuccessMessage('Car added successfully');
         }
-        
+
         bootstrap.Modal.getInstance(document.getElementById('addCarModal')).hide();
         await renderAdminCars();
         await loadCars();
@@ -1129,6 +1410,176 @@ async function deleteCar(carId) {
         } catch (error) {
             showErrorMessage(error.error || 'Failed to delete car');
         }
+    }
+}
+
+// Render feedback management for admin
+async function renderFeedbackManagement() {
+    try {
+        const feedback = await api.get('/feedback/all');
+        const grid = document.getElementById('feedbackGrid');
+
+        if (feedback.length === 0) {
+            grid.innerHTML = '<p class="text-center py-4">No feedback available</p>';
+            return;
+        }
+
+        grid.innerHTML = `
+            <div class="mb-3">
+                <h6>Feedback Overview</h6>
+                <p class="text-muted">Total Reviews: ${feedback.length}</p>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Car</th>
+                            <th>Rating</th>
+                            <th>Comment Preview</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${feedback.map(item => `
+                            <tr>
+                                <td>
+                                    <strong>${item.userName}</strong><br>
+                                    <small class="text-muted">ID: ${item.userId}</small>
+                                </td>
+                                <td>
+                                    <small>${item.email}</small>
+                                </td>
+                                <td>
+                                    <strong>${item.carName}</strong><br>
+                                    <small class="text-muted">ID: ${item.carId}</small>
+                                </td>
+                                <td>
+                                    <div class="rating-display">${'★'.repeat(item.rating)}${'☆'.repeat(5 - item.rating)}</div>
+                                    <small class="text-muted">${item.rating}/5</small>
+                                </td>
+                                <td>
+                                    <div style="max-width: 200px;">
+                                        ${item.comment ? (item.comment.length > 100 ? item.comment.substring(0, 100) + '...' : item.comment) : '<em class="text-muted">No comment provided</em>'}
+                                    </div>
+                                </td>
+                                <td>
+                                    ${new Date(item.createdAt).toLocaleDateString()}<br>
+                                    <small class="text-muted">${new Date(item.createdAt).toLocaleTimeString()}</small>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info me-1" onclick="viewFullFeedback(${item.id}, \`${item.userName}\`, \`${item.carName}\`, ${item.rating}, \`${item.comment || ''}\`, '${item.createdAt}', \`${item.email}\`)">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteFeedback(${item.id})">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (error) {
+        showErrorMessage('Failed to load feedback');
+    }
+}
+
+// View full feedback details
+function viewFullFeedback(feedbackId, userName, carName, rating, comment, createdAt, email) {
+    const modalContent = document.getElementById('fullFeedbackContent');
+    const deleteBtn = document.getElementById('deleteFromModalBtn');
+
+    // Format comment with proper paragraph spacing
+    const formattedComment = comment ? comment.replace(/\n/g, '<br>').replace(/\n\n/g, '<br><br>') : null;
+
+    modalContent.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6 class="text-primary">Customer Information</h6>
+                <div class="card">
+                    <div class="card-body">
+                        <p><strong>Name:</strong> ${userName}</p>
+                        <p><strong>Email:</strong> ${email}</p>
+                        <p><strong>Feedback ID:</strong> ${feedbackId}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-primary">Car Information</h6>
+                <div class="card">
+                    <div class="card-body">
+                        <p><strong>Car:</strong> ${carName}</p>
+                        <p><strong>Rating:</strong> 
+                            <span class="rating-display">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}</span> 
+                            (${rating}/5)
+                        </p>
+                        <p><strong>Date:</strong> ${new Date(createdAt).toLocaleString()}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <h6 class="text-primary">Customer Comment</h6>
+            <div class="card">
+                <div class="card-body">
+                    ${formattedComment ? `<div class="feedback-comment-content">${formattedComment}</div>` : '<p class="mb-0 text-muted"><em>No comment provided by the customer</em></p>'}
+                </div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <h6 class="text-primary">Feedback Statistics</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-success">${rating}</h5>
+                            <p class="card-text">Rating Score</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-info">${comment ? comment.length : 0}</h5>
+                            <p class="card-text">Comment Length</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title text-warning">${Math.ceil((new Date() - new Date(createdAt)) / (1000 * 60 * 60 * 24))}</h5>
+                            <p class="card-text">Days Ago</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Set up delete button
+    deleteBtn.onclick = () => {
+        if (confirm(`Are you sure you want to delete the feedback from ${userName} for ${carName}?`)) {
+            deleteFeedback(feedbackId);
+            bootstrap.Modal.getInstance(document.getElementById('viewFeedbackModal')).hide();
+        }
+    };
+
+    new bootstrap.Modal(document.getElementById('viewFeedbackModal')).show();
+}
+
+// Delete feedback
+async function deleteFeedback(feedbackId) {
+    try {
+        await api.delete(`/feedback/${feedbackId}`);
+        showSuccessMessage('Feedback deleted successfully');
+        renderFeedbackManagement();
+    } catch (error) {
+        showErrorMessage(error.error || 'Failed to delete feedback');
     }
 }
 
@@ -1162,11 +1613,15 @@ function showErrorMessage(msg) {
 }
 
 function showLogin() {
+    // Clear login form when opening modal
+    document.getElementById('loginForm').reset();
     new bootstrap.Modal(document.getElementById('loginModal')).show();
 }
 
 function showSignup() {
     bootstrap.Modal.getInstance(document.getElementById('loginModal'))?.hide();
+    // Clear signup form when opening modal
+    document.getElementById('signupForm').reset();
     new bootstrap.Modal(document.getElementById('signupModal')).show();
 }
     </script>
