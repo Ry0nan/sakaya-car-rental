@@ -93,14 +93,10 @@ router.post('/', authenticateToken, isAdmin, upload.single('image'), async (req,
             if (objectStorageClient) {
                 try {
                     const filename = `cars/${Date.now()}-${req.file.originalname}`;
-                    const result = await objectStorageClient.uploadFromText(filename, req.file.buffer.toString('base64'), {
+                    await objectStorageClient.uploadFromBuffer(filename, req.file.buffer, {
                         contentType: req.file.mimetype
                     });
-                    if (result.ok) {
-                        image = `/api/storage/${filename}`;
-                    } else {
-                        throw new Error(result.error);
-                    }
+                    image = `/api/storage/${filename}`;
                 } catch (error) {
                     console.warn('Object Storage upload failed, falling back to local storage:', error.message);
                     // Fallback to local file storage
@@ -157,14 +153,10 @@ router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (re
             if (objectStorageClient) {
                 try {
                     const filename = `cars/${Date.now()}-${req.file.originalname}`;
-                    const result = await objectStorageClient.uploadFromText(filename, req.file.buffer.toString('base64'), {
+                    await objectStorageClient.uploadFromBuffer(filename, req.file.buffer, {
                         contentType: req.file.mimetype
                     });
-                    if (result.ok) {
-                        image = `/api/storage/${filename}`;
-                    } else {
-                        throw new Error(result.error);
-                    }
+                    image = `/api/storage/${filename}`;
                 } catch (error) {
                     console.warn('Object Storage upload failed, falling back to local storage:', error.message);
                     // Fallback to local file storage
@@ -220,16 +212,16 @@ router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (re
 router.delete('/:id', authenticateToken, isAdmin, async (req, res) => {
     try {
         const db = database.db.get();
-        
+
         // First delete all cart entries for this car
         await db.execute("DELETE FROM cart WHERE carId = ?", [req.params.id]);
-        
+
         // Then delete all rental entries for this car
         await db.execute("DELETE FROM rentals WHERE carId = ?", [req.params.id]);
-        
+
         // Finally delete the car itself
         await db.execute("DELETE FROM cars WHERE id = ?", [req.params.id]);
-        
+
         res.json({ message: 'Car deleted successfully' });
     } catch (error) {
         console.error('Error deleting car:', error);
@@ -269,17 +261,17 @@ router.get('/storage/:filename(*)', async (req, res) => {
         if (!objectStorageClient) {
             return res.status(404).send('Object Storage not available');
         }
-        
+
         const filename = req.params.filename;
         const result = await objectStorageClient.downloadAsText(filename);
-        
+
         if (!result.ok) {
             return res.status(404).send('Image not found');
         }
-        
+
         // Convert base64 back to buffer
         const buffer = Buffer.from(result.value, 'base64');
-        
+
         // Set appropriate content type
         const ext = filename.split('.').pop().toLowerCase();
         const mimeTypes = {
@@ -290,7 +282,7 @@ router.get('/storage/:filename(*)', async (req, res) => {
             'webp': 'image/webp',
             'avif': 'image/avif'
         };
-        
+
         res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
         res.send(buffer);
     } catch (error) {
