@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -55,12 +54,14 @@ app.get('/api/test', (req, res) => {
     res.json({ message: 'API is working!', timestamp: new Date().toISOString() });
 });
 
-// Routes
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cars', carRoutes);
-app.use('/api/storage', carRoutes); // For serving Object Storage images
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/feedback', feedbackRoutes);
+
+// Handle uploads through cars router
+app.use('/api', carRoutes);
 
 // Catch-all handler for SPA
 app.get('*', (req, res) => {

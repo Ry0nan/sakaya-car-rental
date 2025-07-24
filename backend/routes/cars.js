@@ -93,10 +93,14 @@ router.post('/', authenticateToken, isAdmin, upload.single('image'), async (req,
             if (objectStorageClient) {
                 try {
                     const filename = `cars/${Date.now()}-${req.file.originalname}`;
-                    await objectStorageClient.uploadFromBuffer(filename, req.file.buffer, {
-                        contentType: req.file.mimetype
-                    });
-                    image = `/api/storage/${filename}`;
+                    // Upload binary data directly
+                    const result = await objectStorageClient.uploadFromBytes(filename, req.file.buffer);
+
+                    if (result && result.ok !== false) {
+                        image = `/api/storage/${filename}`;
+                    } else {
+                        throw new Error('Upload failed');
+                    }
                 } catch (error) {
                     console.warn('Object Storage upload failed, falling back to local storage:', error.message);
                     // Fallback to local file storage
@@ -107,7 +111,7 @@ router.post('/', authenticateToken, isAdmin, upload.single('image'), async (req,
                     const filename = Date.now() + path.extname(req.file.originalname);
                     const filepath = path.join(uploadPath, filename);
                     fs.writeFileSync(filepath, req.file.buffer);
-                    image = `/uploads/${filename}`;
+                    image = `/api/uploads/${filename}`;
                 }
             } else {
                 // Fallback to local file storage
@@ -118,7 +122,7 @@ router.post('/', authenticateToken, isAdmin, upload.single('image'), async (req,
                 const filename = Date.now() + path.extname(req.file.originalname);
                 const filepath = path.join(uploadPath, filename);
                 fs.writeFileSync(filepath, req.file.buffer);
-                image = `/uploads/${filename}`;
+                image = `/api/uploads/${filename}`;
             }
         }
 
@@ -153,10 +157,14 @@ router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (re
             if (objectStorageClient) {
                 try {
                     const filename = `cars/${Date.now()}-${req.file.originalname}`;
-                    await objectStorageClient.uploadFromBuffer(filename, req.file.buffer, {
-                        contentType: req.file.mimetype
-                    });
-                    image = `/api/storage/${filename}`;
+                    // Upload binary data directly
+                    const result = await objectStorageClient.uploadFromBytes(filename, req.file.buffer);
+
+                    if (result && result.ok !== false) {
+                        image = `/api/storage/${filename}`;
+                    } else {
+                        throw new Error('Upload failed');
+                    }
                 } catch (error) {
                     console.warn('Object Storage upload failed, falling back to local storage:', error.message);
                     // Fallback to local file storage
@@ -167,7 +175,7 @@ router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (re
                     const filename = Date.now() + path.extname(req.file.originalname);
                     const filepath = path.join(uploadPath, filename);
                     fs.writeFileSync(filepath, req.file.buffer);
-                    image = `/uploads/${filename}`;
+                    image = `/api/uploads/${filename}`;
                 }
             } else {
                 // Fallback to local file storage
@@ -178,7 +186,7 @@ router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (re
                 const filename = Date.now() + path.extname(req.file.originalname);
                 const filepath = path.join(uploadPath, filename);
                 fs.writeFileSync(filepath, req.file.buffer);
-                image = `/uploads/${filename}`;
+                image = `/api/uploads/${filename}`;
             }
         }
 
@@ -296,12 +304,12 @@ router.get('/uploads/:filename', (req, res) => {
     try {
         const filename = req.params.filename;
         const filepath = path.join(__dirname, '../uploads', filename);
-        
+
         if (!fs.existsSync(filepath)) {
             console.log('Upload not found:', filepath);
             return res.status(404).send('Upload not found');
         }
-        
+
         res.sendFile(filepath);
     } catch (error) {
         console.error('Error serving upload:', error);
