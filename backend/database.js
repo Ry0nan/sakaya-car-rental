@@ -63,7 +63,6 @@ const initializeDatabase = async () => {
             price DECIMAL(10,2) NOT NULL,
             image VARCHAR(500),
             description TEXT,
-            seats INT DEFAULT 4,
             isAvailable BOOLEAN DEFAULT TRUE,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`);
@@ -135,7 +134,74 @@ const insertInitialData = async () => {
             console.log("Admin user created: admin@sakaya.com / admin123");
         }
 
+        // Check if cars already exist
+        const [existingCars] = await db.execute("SELECT COUNT(*) as count FROM cars");
+        
+        if (existingCars[0].count === 0) {
+            console.log("No cars found, inserting sample cars...");
+            // Insert sample cars
+            const sampleCars = [
+                [
+                    "Toyota RAV4",
+                    "suv",
+                    75,
+                    "/assets/hyundai-kona.avif",
+                    "Spacious and reliable SUV perfect for family trips"
+                ],
+                [
+                    "Honda Pilot",
+                    "suv",
+                    85,
+                    "/assets/kia-niro.avif",
+                    "Premium 8-seater SUV with advanced safety features"
+                ],
+                [
+                    "Ford Transit",
+                    "van",
+                    95,
+                    "/assets/ford-transit-wagon.avif",
+                    "Spacious van ideal for group travel or cargo"
+                ],
+                [
+                    "Chevrolet Express",
+                    "van",
+                    90,
+                    "/assets/chevrolet-express.avif",
+                    "Reliable passenger van with comfortable seating"
+                ],
+                [
+                    "Toyota Camry",
+                    "sedan",
+                    55,
+                    "/assets/toyota-camry.avif",
+                    "Elegant sedan with excellent fuel efficiency"
+                ],
+                [
+                    "Honda Accord",
+                    "sedan",
+                    60,
+                    "/assets/chevrolet-malibu.avif",
+                    "Luxury sedan with smooth ride and modern features"
+                ],
+                [
+                    "Nissan Altima",
+                    "sedan",
+                    58,
+                    "/assets/nissan-versa.avif",
+                    "Comfortable sedan with spacious interior"
+                ]
+            ];
 
+            for (const car of sampleCars) {
+                await db.execute(
+                    "INSERT INTO cars (name, category, price, image, description, isAvailable) VALUES (?, ?, ?, ?, ?, ?)",
+                    [...car, true]
+                );
+            }
+            console.log(`Sample cars inserted: ${sampleCars.length} cars added`);
+        } else {
+            console.log(`Found ${existingCars[0].count} existing cars, skipping sample data insertion`);
+        }
     } catch (error) {
         console.error("Error inserting initial data:", error);
         throw error;

@@ -4,22 +4,26 @@ const path = require('path');
 const fs = require('fs');
 const database = require('../database');
 const { authenticateToken, isAdmin } = require('../middleware/auth');
+const { Client } = require('@replit/object-storage');
 
 const router = express.Router();
 
-// Configure multer for image uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadPath = path.join(__dirname, '../uploads');
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
+// Initialize Object Storage client lazily
+let client = null;
+function getObjectStorageClient() {
+    if (!client) {
+        try {
+            client = new Client();
+        } catch (error) {
+            console.warn('Object Storage not available, falling back to local storage');
+            return null;
         }
-        cb(null, uploadPath);
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
     }
-});
+    return client;
+}
+
+// Configure multer for memory storage (Object Storage)
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
     storage,
@@ -79,19 +83,57 @@ router.get('/:id', async (req, res) => {
 
 // Add new car (Admin only)
 router.post('/', authenticateToken, isAdmin, upload.single('image'), async (req, res) => {
-    const { name, category, price, description, seats, isAvailable } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : '/assets/default-car.jpg';
+    const { name, category, price, description, isAvailable } = req.body;
+    let image = '/assets/default-car.jpg';
 
     try {
+        // Upload image to Object Storage if provided
+        if (req.file) {
+            const objectStorageClient = getObjectStorageClient();
+            if (objectStorageClient) {
+                try {
+                    const filename = `cars/${Date.now()}-${req.file.originalname}`;
+                    const result = await objectStorageClient.uploadFromText(filename, req.file.buffer.toString('base64'), {
+                        contentType: req.file.mimetype
+                    });
+                    if (result.ok) {
+                        image = `/api/storage/${filename}`;
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (error) {
+                    console.warn('Object Storage upload failed, falling back to local storage:', error.message);
+                    // Fallback to local file storage
+                    const uploadPath = path.join(__dirname, '../uploads');
+                    if (!fs.existsSync(uploadPath)) {
+                        fs.mkdirSync(uploadPath, { recursive: true });
+                    }
+                    const filename = Date.now() + path.extname(req.file.originalname);
+                    const filepath = path.join(uploadPath, filename);
+                    fs.writeFileSync(filepath, req.file.buffer);
+                    image = `/uploads/${filename}`;
+                }
+            } else {
+                // Fallback to local file storage
+                const uploadPath = path.join(__dirname, '../uploads');
+                if (!fs.existsSync(uploadPath)) {
+                    fs.mkdirSync(uploadPath, { recursive: true });
+                }
+                const filename = Date.now() + path.extname(req.file.originalname);
+                const filepath = path.join(uploadPath, filename);
+                fs.writeFileSync(filepath, req.file.buffer);
+                image = `/uploads/${filename}`;
+            }
+        }
+
         const db = database.db.get();
         const [result] = await db.execute(
-            "INSERT INTO cars (name, category, price, description, seats, image, isAvailable) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO cars (name, category, price, description, image, isAvailable) VALUES (?, ?, ?, ?, ?, ?)",
             [
                 name || null,
                 category || null,
                 price || null,
                 description || null,
-                seats || null,
                 image,
                 isAvailable !== undefined ? (isAvailable === 'true' || isAvailable === true ? 1 : 0) : 1
             ]
@@ -105,18 +147,56 @@ router.post('/', authenticateToken, isAdmin, upload.single('image'), async (req,
 
 // Update car (Admin only)
 router.put('/:id', authenticateToken, isAdmin, upload.single('image'), async (req, res) => {
-    const { name, category, price, description, seats, isAvailable } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : undefined;
+    const { name, category, price, description, isAvailable } = req.body;
+    let image = undefined;
 
     try {
+        // Upload new image to Object Storage if provided
+        if (req.file) {
+            const objectStorageClient = getObjectStorageClient();
+            if (objectStorageClient) {
+                try {
+                    const filename = `cars/${Date.now()}-${req.file.originalname}`;
+                    const result = await objectStorageClient.uploadFromText(filename, req.file.buffer.toString('base64'), {
+                        contentType: req.file.mimetype
+                    });
+                    if (result.ok) {
+                        image = `/api/storage/${filename}`;
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (error) {
+                    console.warn('Object Storage upload failed, falling back to local storage:', error.message);
+                    // Fallback to local file storage
+                    const uploadPath = path.join(__dirname, '../uploads');
+                    if (!fs.existsSync(uploadPath)) {
+                        fs.mkdirSync(uploadPath, { recursive: true });
+                    }
+                    const filename = Date.now() + path.extname(req.file.originalname);
+                    const filepath = path.join(uploadPath, filename);
+                    fs.writeFileSync(filepath, req.file.buffer);
+                    image = `/uploads/${filename}`;
+                }
+            } else {
+                // Fallback to local file storage
+                const uploadPath = path.join(__dirname, '../uploads');
+                if (!fs.existsSync(uploadPath)) {
+                    fs.mkdirSync(uploadPath, { recursive: true });
+                }
+                const filename = Date.now() + path.extname(req.file.originalname);
+                const filepath = path.join(uploadPath, filename);
+                fs.writeFileSync(filepath, req.file.buffer);
+                image = `/uploads/${filename}`;
+            }
+        }
+
         const db = database.db.get();
-        let query = "UPDATE cars SET name = ?, category = ?, price = ?, description = ?, seats = ?, isAvailable = ?";
+        let query = "UPDATE cars SET name = ?, category = ?, price = ?, description = ?, isAvailable = ?";
         let params = [
             name || null,
             category || null,
             price || null,
             description || null,
-            seats || null,
             isAvailable !== undefined ? (isAvailable === 'true' || isAvailable === true ? 1 : 0) : null
         ];
 
@@ -179,6 +259,43 @@ router.get('/:id/availability', async (req, res) => {
     } catch (error) {
         console.error('Error checking availability:', error);
         res.status(500).json({ error: 'Failed to check availability', details: error.message });
+    }
+});
+
+// Serve images from Object Storage
+router.get('/storage/:filename(*)', async (req, res) => {
+    try {
+        const objectStorageClient = getObjectStorageClient();
+        if (!objectStorageClient) {
+            return res.status(404).send('Object Storage not available');
+        }
+        
+        const filename = req.params.filename;
+        const result = await objectStorageClient.downloadAsText(filename);
+        
+        if (!result.ok) {
+            return res.status(404).send('Image not found');
+        }
+        
+        // Convert base64 back to buffer
+        const buffer = Buffer.from(result.value, 'base64');
+        
+        // Set appropriate content type
+        const ext = filename.split('.').pop().toLowerCase();
+        const mimeTypes = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'avif': 'image/avif'
+        };
+        
+        res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Error serving image:', error);
+        res.status(404).send('Image not found');
     }
 });
 

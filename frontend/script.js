@@ -217,7 +217,6 @@ function displayCars(cars) {
                     <h5 class="card-title">${car.name}</h5>
                     <p class="card-text"><strong>Category:</strong> ${car.category}</p>
                     <p class="card-text"><strong>Price:</strong> ₱${car.price}/day</p>
-                    <p class="card-text"><strong>Seats:</strong> ${car.seats}</p>
                     <p class="card-text flex-grow-1">${car.description || 'No description available'}</p>
                     <div class="mt-auto">
                         <span class="badge ${car.isAvailable ? 'bg-success' : 'bg-danger'} mb-2">
@@ -256,7 +255,6 @@ async function editCar(carId) {
         document.getElementById('carName').value = car.name;
         document.getElementById('carCategory').value = car.category;
         document.getElementById('carPrice').value = car.price;
-        document.getElementById('carSeats').value = car.seats;
         document.getElementById('carDescription').value = car.description || '';
         document.getElementById('carAvailability').value = car.isAvailable ? 'true' : 'false';
         document.getElementById('availabilityGroup').style.display = 'block';
@@ -403,7 +401,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             formData.append('name', document.getElementById('carName').value);
             formData.append('category', document.getElementById('carCategory').value);
             formData.append('price', document.getElementById('carPrice').value);
-            formData.append('seats', document.getElementById('carSeats').value);
             formData.append('description', document.getElementById('carDescription').value);
             
             if (editCarId) {

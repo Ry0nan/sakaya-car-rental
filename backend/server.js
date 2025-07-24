@@ -5,7 +5,7 @@ const path = require('path');
 require('dotenv').config();
 
 const { connectToAivenMySQL } = require('./database');
-const authRoutes = require('./routes/auth');
+const authRoutes = require('./routes/login');
 const carRoutes = require('./routes/cars');
 const rentalRoutes = require('./routes/rentals');
 const feedbackRoutes = require('./routes/feedback');
@@ -58,6 +58,7 @@ app.get('/api/test', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/cars', carRoutes);
+app.use('/api/storage', carRoutes); // For serving Object Storage images
 app.use('/api/rentals', rentalRoutes);
 app.use('/api/feedback', feedbackRoutes);
 
