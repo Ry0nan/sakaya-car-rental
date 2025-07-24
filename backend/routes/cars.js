@@ -291,4 +291,22 @@ router.get('/storage/:filename(*)', async (req, res) => {
     }
 });
 
+// Serve uploaded files from local storage (fallback)
+router.get('/uploads/:filename', (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const filepath = path.join(__dirname, '../uploads', filename);
+        
+        if (!fs.existsSync(filepath)) {
+            console.log('Upload not found:', filepath);
+            return res.status(404).send('Upload not found');
+        }
+        
+        res.sendFile(filepath);
+    } catch (error) {
+        console.error('Error serving upload:', error);
+        res.status(404).send('Upload not found');
+    }
+});
+
 module.exports = router;
